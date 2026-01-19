@@ -313,6 +313,9 @@ qs('loadDefaultPromptBtn').addEventListener('click', async () => {
 });
 
 window.api.onBotStatus(updateBotStatus);
+window.api.onBotError((payload) => {
+    botStatusHint.textContent = payload && payload.error ? `ошибка бота: ${payload.error}` : 'ошибка запуска бота';
+});
 window.api.onProxyError((payload) => {
     viaProxyRunStatus.textContent = payload && payload.error ? `ошибка: ${payload.error}` : 'ошибка запуска';
 });

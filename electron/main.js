@@ -120,8 +120,14 @@ const findViaProxyJar = (root) => {
 
 const getViaProxySettings = () => {
     const viaProxy = currentConfig.viaProxy || {};
-    const root = viaProxy.root || viaProxy.path || defaultViaProxyRoot;
-    const jar = viaProxy.jar || findViaProxyJar(root);
+    let root = viaProxy.root || viaProxy.path || '';
+    let jar = viaProxy.jar || '';
+    if (!root || !fs.existsSync(root)) {
+        root = defaultViaProxyRoot;
+    }
+    if (!jar || !fs.existsSync(jar)) {
+        jar = findViaProxyJar(root);
+    }
     const javaPath = viaProxy.javaPath || 'java';
     const argsRaw = viaProxy.args || '';
     const args = Array.isArray(argsRaw)
@@ -176,6 +182,12 @@ const startBot = () => {
         },
         execPath: process.execPath,
         stdio: ['ignore', 'pipe', 'pipe', 'ipc']
+    });
+    botProcess.once('error', (err) => {
+        botProcess = null;
+        if (mainWindow) {
+            mainWindow.webContents.send('bot-error', { error: err.message });
+        }
     });
     botProcess.on('message', (msg) => {
         if (msg && msg.type === 'bot_status') {
@@ -325,7 +337,12 @@ ipcMain.handle('check-proxy', async (_, host, port) => {
 });
 
 ipcMain.handle('start-bot', async () => {
-    if (getViaProxySettings().autoStart) startViaProxy();
+    if (getViaProxySettings().autoStart) {
+        const proxyResult = startViaProxy();
+        if (!proxyResult.ok && mainWindow) {
+            mainWindow.webContents.send('proxy-error', { error: proxyResult.error || 'ViaProxy start failed' });
+        }
+    }
     return startBot();
 });
 
