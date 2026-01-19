@@ -12,15 +12,11 @@
 3. Скачай **EXE** из Releases (самый свежий):
    - https://github.com/slatgoth/aibot_minecraft/releases
 4. Запусти EXE из архива Releases.
-5. Настрой ViaProxy:
-   - После первого запуска EXE файл лежит в `%APPDATA%\minecraft-llm-bot\viaproxy\viaproxy.yml` (или смотри путь в панели).
-   - Если запускаешь из исходников, файл: `tools\viaproxy\viaproxy.yml`.
-   - Поставь адрес сервера:
-     - `target-address: <SERVER_IP_OR_DOMAIN>:<PORT>`
-   - Локальный порт прокси (бот подключается к нему):
-     - `bind-address: 127.0.0.1:25568`
-   - Если сервер онлайн-режима, ставь `auth-method: ACCOUNT` и настрой аккаунт в ViaProxy.
-6. В панели:
+5. В панели заполнить ViaProxy настройки (править yml вручную не нужно):
+   - `MC_SERVER_HOST/MC_SERVER_PORT` — адрес сервера (например, `maryflorett.aternos.me:25565`).
+   - `auth-method`: NONE для оффлайн сервера, ACCOUNT для онлайн сервера.
+   - `target-version`: версия сервера (например 1.21.11) или Auto Detect.
+6. В панели подключения бота:
    - `BOT_HOST = 127.0.0.1`
    - `BOT_PORT = 25568`
    - `BOT_VERSION = 1.21.4`
@@ -47,6 +43,7 @@
 - Ожидание запуска ViaProxy перед стартом бота (таймаут настраивается).
 - Синхронизация `viaproxy.yml` из панели (bind/target).
 - Логи бота и ViaProxy прямо в панели, плюс быстрый доступ к папке логов.
+- Настройки auth-method/target-version доступны прямо в панели.
 
 Настройки и prompt сохраняются сюда:
 - `%APPDATA%\minecraft-llm-bot\config.user.json`
@@ -58,10 +55,10 @@
 - EXE не кладётся в корень репозитория (лимит GitHub 100MB), поэтому он в Releases.
 - Название репозитория без версии проще поддерживать, а актуальность версий отражается в Releases.
 
-## Последнее обновление (v1.2.3)
+## Последнее обновление (v1.2.4)
+- Настройки ViaProxy (auth-method/target-version) прямо в панели.
 - Логи бота и ViaProxy теперь видны прямо в панели.
 - Улучшен дизайн интерфейса панели.
-- Улучшены сообщения о причинах разрыва (например ECONNRESET).
 История изменений — в Releases.
 
 ## Обзор и архитектура

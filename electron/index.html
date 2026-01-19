@@ -101,7 +101,29 @@
         <label>MC_SERVER_HOST<input id="serverHost" type="text" /></label>
         <label>MC_SERVER_PORT<input id="serverPort" type="number" /></label>
       </div>
-      <p class="hint">Для работы бот подключается к локальному прокси (BOT_HOST/BOT_PORT). Серверные данные нужны для справки.</p>
+      <p class="hint">Для работы бот подключается к локальному прокси (BOT_HOST/BOT_PORT). Серверные данные синхронизируются в viaproxy.yml.</p>
+    </section>
+
+    <section class="card">
+      <h2>ViaProxy настройки</h2>
+      <div class="grid">
+        <label>target-version<input id="viaProxyTargetVersion" type="text" /></label>
+        <label>auth-method
+          <select id="viaProxyAuthMethod">
+            <option value="NONE">NONE (offline)</option>
+            <option value="ACCOUNT">ACCOUNT (online)</option>
+          </select>
+        </label>
+        <label>proxy-online-mode
+          <select id="viaProxyOnlineMode">
+            <option value="false">false</option>
+            <option value="true">true</option>
+          </select>
+        </label>
+        <label>minecraft-account-index<input id="viaProxyAccountIndex" type="number" min="0" /></label>
+        <label>backend-proxy-url<input id="viaProxyBackendProxyUrl" type="text" /></label>
+      </div>
+      <p class="hint">Оффлайн сервер = auth-method NONE. Онлайн сервер = ACCOUNT + аккаунт в ViaProxy GUI.</p>
     </section>
 
     <section class="card">

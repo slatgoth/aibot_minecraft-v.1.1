@@ -29,7 +29,19 @@ for (const oldFile of oldFiles) {
 }
 
 const targetExe = path.join(root, `${exePrefix}.exe`);
-fs.copyFileSync(latest.fullPath, targetExe);
+let copiedTo = targetExe;
+try {
+    fs.copyFileSync(latest.fullPath, targetExe);
+} catch (err) {
+    if (err && err.code === 'EBUSY') {
+        const fallbackExe = path.join(root, `${exePrefix} NEW.exe`);
+        fs.copyFileSync(latest.fullPath, fallbackExe);
+        copiedTo = fallbackExe;
+        console.error(`Existing EXE is in use. Copied to: ${fallbackExe}`);
+    } else {
+        throw err;
+    }
+}
 
 const rootOld = findExeFiles(root).filter((entry) => entry.fullPath !== targetExe);
 for (const entry of rootOld) {
@@ -37,4 +49,4 @@ for (const entry of rootOld) {
 }
 
 console.log(`Latest EXE: ${latest.name}`);
-console.log(`Copied to: ${targetExe}`);
+console.log(`Copied to: ${copiedTo}`);

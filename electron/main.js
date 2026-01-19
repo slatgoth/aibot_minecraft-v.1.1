@@ -157,13 +157,14 @@ const updateViaProxyConfig = (root, updates) => {
         let changed = false;
 
         Object.entries(updates).forEach(([key, value]) => {
-            if (!value) return;
+            if (value === undefined || value === null) return;
             let found = false;
+            const normalizedValue = String(value);
             const keyPattern = new RegExp(`^\\s*${key}\\s*:`, 'i');
             lines = lines.map((line) => {
                 if (keyPattern.test(line) && !line.trim().startsWith('#')) {
                     found = true;
-                    const nextLine = `${key}: ${value}`;
+                    const nextLine = `${key}: ${normalizedValue}`;
                     if (line.trim() !== nextLine) {
                         changed = true;
                         return nextLine;
@@ -172,7 +173,7 @@ const updateViaProxyConfig = (root, updates) => {
                 return line;
             });
             if (!found) {
-                lines.push(`${key}: ${value}`);
+                lines.push(`${key}: ${normalizedValue}`);
                 changed = true;
             }
         });
@@ -186,13 +187,33 @@ const updateViaProxyConfig = (root, updates) => {
     }
 };
 
-const syncViaProxyConfig = (root, botConfig, proxyConfig) => {
+const normalizeAuthMethod = (value) => {
+    const raw = String(value || '').trim().toUpperCase();
+    return raw === 'ACCOUNT' ? 'ACCOUNT' : 'NONE';
+};
+
+const syncViaProxyConfig = (root, botConfig, proxyConfig, viaProxyConfig = {}) => {
     const bindAddress = formatAddress(botConfig.host, botConfig.port);
     const targetAddress = formatAddress(proxyConfig.targetHost, proxyConfig.targetPort);
     if (!bindAddress || !targetAddress) return { ok: true, skipped: true };
+    const targetVersion = viaProxyConfig.targetVersion ? String(viaProxyConfig.targetVersion).trim() : '';
+    const authMethod = normalizeAuthMethod(viaProxyConfig.authMethod);
+    const proxyOnlineMode = viaProxyConfig.proxyOnlineMode ? 'true' : 'false';
+    const backendProxyUrl = typeof viaProxyConfig.backendProxyUrl === 'string'
+        ? viaProxyConfig.backendProxyUrl.trim()
+        : '';
+    const accountIndex = Number.isFinite(Number(viaProxyConfig.accountIndex))
+        ? String(Number(viaProxyConfig.accountIndex))
+        : '0';
+
     return updateViaProxyConfig(root, {
         'bind-address': bindAddress,
-        'target-address': targetAddress
+        'target-address': targetAddress,
+        'target-version': targetVersion || undefined,
+        'auth-method': authMethod,
+        'proxy-online-mode': proxyOnlineMode,
+        'minecraft-account-index': accountIndex,
+        'backend-proxy-url': backendProxyUrl ? backendProxyUrl : "''"
     });
 };
 
@@ -311,7 +332,8 @@ const startViaProxy = () => {
         const syncResult = syncViaProxyConfig(
             settings.root,
             currentConfig.bot || config.bot,
-            currentConfig.proxy || config.proxy
+            currentConfig.proxy || config.proxy,
+            currentConfig.viaProxy || {}
         );
         if (!syncResult.ok && !syncResult.skipped) {
             return { ok: false, error: syncResult.error || 'ViaProxy config sync failed' };
@@ -517,7 +539,12 @@ ipcMain.handle('save-config', async (_, payload) => {
     let syncResult = null;
     if (payload && payload.viaProxy && payload.viaProxy.syncConfig !== false) {
         const settings = getViaProxySettings();
-        syncResult = syncViaProxyConfig(settings.root, currentConfig.bot || config.bot, currentConfig.proxy || config.proxy);
+        syncResult = syncViaProxyConfig(
+            settings.root,
+            currentConfig.bot || config.bot,
+            currentConfig.proxy || config.proxy,
+            currentConfig.viaProxy || {}
+        );
     }
     return { ok: true, path: configPath, sync: syncResult };
 });

@@ -18,6 +18,11 @@ const fields = {
     viaProxyArgs: qs('viaProxyArgs'),
     autoStartProxy: qs('autoStartProxy'),
     syncViaProxyConfig: qs('syncViaProxyConfig'),
+    viaProxyTargetVersion: qs('viaProxyTargetVersion'),
+    viaProxyAuthMethod: qs('viaProxyAuthMethod'),
+    viaProxyOnlineMode: qs('viaProxyOnlineMode'),
+    viaProxyAccountIndex: qs('viaProxyAccountIndex'),
+    viaProxyBackendProxyUrl: qs('viaProxyBackendProxyUrl'),
     autoStartBot: qs('autoStartBot'),
     autoReconnect: qs('autoReconnect'),
     reconnectDelayMs: qs('reconnectDelayMs'),
@@ -105,6 +110,11 @@ const fillForm = (config, defaults) => {
     fields.viaProxyArgs.value = Array.isArray(viaProxy.args) ? viaProxy.args.join(' ') : (viaProxy.args || '');
     fields.autoStartProxy.value = String(Boolean(viaProxy.autoStart));
     fields.syncViaProxyConfig.value = String(viaProxy.syncConfig !== false);
+    fields.viaProxyTargetVersion.value = viaProxy.targetVersion || '';
+    fields.viaProxyAuthMethod.value = (viaProxy.authMethod || 'NONE').toUpperCase();
+    fields.viaProxyOnlineMode.value = String(Boolean(viaProxy.proxyOnlineMode));
+    fields.viaProxyAccountIndex.value = viaProxy.accountIndex ?? 0;
+    fields.viaProxyBackendProxyUrl.value = viaProxy.backendProxyUrl || '';
     fields.autoStartBot.value = String(Boolean(config.launcher?.autoStartBot));
     fields.autoReconnect.value = String(config.connection?.autoReconnect !== false);
     fields.reconnectDelayMs.value = config.connection?.reconnectDelayMs ?? 5000;
@@ -149,7 +159,12 @@ const buildConfigPayload = () => {
             javaPath: fields.javaPath.value.trim(),
             args: fields.viaProxyArgs.value.trim(),
             autoStart: fields.autoStartProxy.value === 'true',
-            syncConfig: fields.syncViaProxyConfig.value === 'true'
+            syncConfig: fields.syncViaProxyConfig.value === 'true',
+            targetVersion: fields.viaProxyTargetVersion.value.trim(),
+            authMethod: fields.viaProxyAuthMethod.value.trim(),
+            proxyOnlineMode: fields.viaProxyOnlineMode.value === 'true',
+            accountIndex: readNumber(fields.viaProxyAccountIndex.value, 0),
+            backendProxyUrl: fields.viaProxyBackendProxyUrl.value.trim()
         },
         connection: {
             autoReconnect: fields.autoReconnect.value === 'true',

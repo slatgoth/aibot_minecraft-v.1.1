@@ -57,7 +57,12 @@ const baseConfig = {
         javaPath: '',
         args: '',
         autoStart: true,
-        syncConfig: true
+        syncConfig: true,
+        targetVersion: 'Auto Detect (1.7+ servers)',
+        authMethod: 'NONE',
+        proxyOnlineMode: false,
+        backendProxyUrl: '',
+        accountIndex: 0
     },
     connection: {
         autoReconnect: true,
