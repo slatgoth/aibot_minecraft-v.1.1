@@ -52,6 +52,11 @@ const baseConfig = {
         args: '',
         autoStart: true
     },
+    connection: {
+        autoReconnect: true,
+        reconnectDelayMs: 5000,
+        maxReconnectAttempts: 0
+    },
     launcher: {
         autoStartBot: true
     },

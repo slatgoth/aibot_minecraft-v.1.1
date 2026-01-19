@@ -18,6 +18,9 @@ const fields = {
     viaProxyArgs: qs('viaProxyArgs'),
     autoStartProxy: qs('autoStartProxy'),
     autoStartBot: qs('autoStartBot'),
+    autoReconnect: qs('autoReconnect'),
+    reconnectDelayMs: qs('reconnectDelayMs'),
+    maxReconnectAttempts: qs('maxReconnectAttempts'),
     defaultMode: qs('defaultMode'),
     commandPrefixes: qs('commandPrefixes'),
     chatCooldown: qs('chatCooldown'),
@@ -81,6 +84,9 @@ const fillForm = (config, defaults) => {
     fields.viaProxyArgs.value = Array.isArray(viaProxy.args) ? viaProxy.args.join(' ') : (viaProxy.args || '');
     fields.autoStartProxy.value = String(Boolean(viaProxy.autoStart));
     fields.autoStartBot.value = String(Boolean(config.launcher?.autoStartBot));
+    fields.autoReconnect.value = String(config.connection?.autoReconnect !== false);
+    fields.reconnectDelayMs.value = config.connection?.reconnectDelayMs ?? 5000;
+    fields.maxReconnectAttempts.value = config.connection?.maxReconnectAttempts ?? 0;
 
     fields.defaultMode.value = config.behavior?.defaultMode || 'manual';
     fields.liveMode.value = config.behavior?.defaultMode || 'manual';
@@ -119,6 +125,11 @@ const buildConfigPayload = () => {
             javaPath: fields.javaPath.value.trim(),
             args: fields.viaProxyArgs.value.trim(),
             autoStart: fields.autoStartProxy.value === 'true'
+        },
+        connection: {
+            autoReconnect: fields.autoReconnect.value === 'true',
+            reconnectDelayMs: readNumber(fields.reconnectDelayMs.value, 5000),
+            maxReconnectAttempts: readNumber(fields.maxReconnectAttempts.value, 0)
         },
         launcher: {
             autoStartBot: fields.autoStartBot.value === 'true'
@@ -224,7 +235,11 @@ const refreshProcessStatuses = async () => {
 const startBot = async () => {
     await saveConfig();
     const result = await window.api.startBot();
-    botRunStatus.textContent = result.status || 'запускается';
+    if (!result.ok) {
+        botRunStatus.textContent = `ошибка: ${result.error || 'не удалось'}`;
+    } else {
+        botRunStatus.textContent = result.status || 'запускается';
+    }
 };
 
 const stopBot = async () => {
@@ -235,7 +250,11 @@ const stopBot = async () => {
 const startViaProxy = async () => {
     await saveConfig();
     const result = await window.api.startViaProxy();
-    viaProxyRunStatus.textContent = result.status || 'запускается';
+    if (!result.ok) {
+        viaProxyRunStatus.textContent = `ошибка: ${result.error || 'не удалось'}`;
+    } else {
+        viaProxyRunStatus.textContent = result.status || 'запускается';
+    }
 };
 
 const stopViaProxy = async () => {
@@ -271,6 +290,10 @@ qs('stopBotBtn').addEventListener('click', stopBot);
 qs('startViaProxyBtn').addEventListener('click', startViaProxy);
 qs('stopViaProxyBtn').addEventListener('click', stopViaProxy);
 qs('applyUsernameBtn').addEventListener('click', applyUsername);
+qs('startAllBtn').addEventListener('click', async () => {
+    await startViaProxy();
+    await startBot();
+});
 qs('setModeBtn').addEventListener('click', async () => {
     await window.api.botCommand('set_mode', { mode: fields.liveMode.value });
 });

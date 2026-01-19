@@ -62,6 +62,9 @@
           </select>
         </label>
       </div>
+      <div class="actions">
+        <button id="startAllBtn" class="primary">Запустить всё</button>
+      </div>
     </section>
 
     <section class="card">
@@ -99,6 +102,21 @@
         </label>
       </div>
       <p class="hint">ViaProxy запускается через Java: `java -jar ViaProxy-*.jar`.</p>
+    </section>
+
+    <section class="card">
+      <h2>Подключение</h2>
+      <div class="grid">
+        <label>Автоподключение
+          <select id="autoReconnect">
+            <option value="true">да</option>
+            <option value="false">нет</option>
+          </select>
+        </label>
+        <label>Задержка переподключения (мс)<input id="reconnectDelayMs" type="number" /></label>
+        <label>Лимит попыток (0 = бесконечно)<input id="maxReconnectAttempts" type="number" /></label>
+      </div>
+      <p class="hint">Если соединение сбросилось (ECONNRESET), бот автоматически переподключится.</p>
     </section>
 
     <section class="card">

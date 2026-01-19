@@ -21,6 +21,48 @@ let skills = null;
 let perception = null;
 let pendingMode = null;
 let idleInterval = null;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+let shuttingDown = false;
+
+const getConnectionConfig = () => {
+    const connection = config.connection || {};
+    return {
+        autoReconnect: connection.autoReconnect !== false,
+        reconnectDelayMs: Number.isFinite(Number(connection.reconnectDelayMs))
+            ? Number(connection.reconnectDelayMs)
+            : 5000,
+        maxReconnectAttempts: Number.isFinite(Number(connection.maxReconnectAttempts))
+            ? Number(connection.maxReconnectAttempts)
+            : 0
+    };
+};
+
+const cleanupBot = () => {
+    if (idleInterval) clearInterval(idleInterval);
+    idleInterval = null;
+    bot = null;
+    planner = null;
+    skills = null;
+    perception = null;
+};
+
+const scheduleReconnect = (reason) => {
+    if (shuttingDown) return;
+    const { autoReconnect, reconnectDelayMs, maxReconnectAttempts } = getConnectionConfig();
+    if (!autoReconnect) return;
+    if (maxReconnectAttempts > 0 && reconnectAttempts >= maxReconnectAttempts) {
+        logger.warn('Reconnect attempts limit reached');
+        return;
+    }
+    reconnectAttempts += 1;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    logger.warn(`Reconnecting in ${reconnectDelayMs}ms (reason: ${reason || 'unknown'})`);
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        createBot();
+    }, reconnectDelayMs);
+};
 
 const sendToParent = (payload) => {
     if (typeof process.send === 'function') {
@@ -46,7 +88,9 @@ const getStatus = () => {
 
 function createBot() {
     if (bot) return bot;
+    shuttingDown = false;
     logger.info('Starting bot...');
+    reconnectAttempts = 0;
 
     bot = mineflayer.createBot({
         host: config.bot.host,
@@ -66,6 +110,7 @@ function createBot() {
     // Initialize modules once spawned
     bot.once('spawn', () => {
         logger.info('Bot spawned!');
+        reconnectAttempts = 0;
 
         const mcData = require('minecraft-data')(bot.version);
         const defaultMove = new Movements(bot, mcData);
@@ -111,18 +156,19 @@ function createBot() {
     bot.on('kicked', (reason) => {
         logger.error('Bot kicked', reason);
         sendToParent({ type: 'bot_status', data: getStatus() });
+        cleanupBot();
+        scheduleReconnect('kicked');
     });
     bot.on('error', (err) => {
         logger.error('Bot error', err);
         sendToParent({ type: 'bot_status', data: getStatus() });
+        cleanupBot();
+        scheduleReconnect(err && err.code ? err.code : 'error');
     });
     bot.on('end', () => {
-        if (idleInterval) clearInterval(idleInterval);
-        bot = null;
-        planner = null;
-        skills = null;
-        perception = null;
+        cleanupBot();
         sendToParent({ type: 'bot_status', data: getStatus() });
+        scheduleReconnect('end');
     });
 
     return bot;
@@ -168,6 +214,7 @@ const handleCommand = async (message) => {
         llm.systemPrompt = llm.buildSystemPrompt();
         sendToParent({ type: 'bot_status', data: getStatus() });
     } else if (type === 'shutdown') {
+        shuttingDown = true;
         bot.quit('shutdown');
     } else if (type === 'user_command') {
         const text = payload && payload.text;
