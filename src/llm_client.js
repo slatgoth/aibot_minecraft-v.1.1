@@ -1,3 +1,4 @@
+const fs = require('fs');
 const { Ollama } = require('ollama');
 const config = require('./config');
 const { logger } = require('./utils');
@@ -76,7 +77,28 @@ class LLMClient {
         return null;
     }
 
+    loadPromptFromFile(filePath) {
+        try {
+            if (!filePath || !fs.existsSync(filePath)) return null;
+            const raw = fs.readFileSync(filePath, 'utf8');
+            const trimmed = String(raw || '').trim();
+            if (!trimmed.length) return null;
+            return trimmed;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    applyPromptTemplate(prompt) {
+        if (!prompt) return prompt;
+        return prompt.replace(/\{bot_username\}/g, config.bot.username);
+    }
+
     buildSystemPrompt() {
+        const userPrompt = this.loadPromptFromFile(config.paths.systemPrompt);
+        if (userPrompt) return this.applyPromptTemplate(userPrompt);
+        const fallback = this.loadPromptFromFile(config.paths.systemPromptDefault);
+        if (fallback) return this.applyPromptTemplate(fallback);
         return `
 Ты - Minecraft бот-персонаж с ником ${config.bot.username}.
 Личность:

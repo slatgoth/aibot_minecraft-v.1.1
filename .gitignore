@@ -1,5 +1,7 @@
 node_modules/
 logs/
 data/memory.json
+config.user.json
+prompts/system_prompt.txt
 .env
 *.log

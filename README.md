@@ -33,6 +33,14 @@
    - Поднять локальный прокси 1.21.4 -> 1.21.11.
    - Указать локальный порт в `BOT_PORT` или `src/config.js`.
 
+## Панель настройки (Electron)
+Есть локальное приложение для быстрой персонализации (включая prompt и модель Ollama).
+Запуск:
+```bash
+npm run app
+```
+Данные сохраняются в `config.user.json` и `prompts/system_prompt.txt` (эти файлы в .gitignore).
+
 ## Установка
 ```bash
 npm install
@@ -67,3 +75,5 @@ node src/index.js
 ## Файлы
 - `src/config.js`: конфигурация подключения и LLM.
 - `data/memory.example.json`: шаблон памяти, локально создаётся `data/memory.json`.
+- `config.user.json`: пользовательские настройки (создаётся панелью).
+- `prompts/system_prompt.txt`: пользовательский system prompt (создаётся панелью).

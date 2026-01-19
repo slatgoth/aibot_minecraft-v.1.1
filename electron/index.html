@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minecraft LLM Bot - Control Panel</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Minecraft LLM Bot</h1>
+        <p class="subtitle">Панель настройки (ранняя версия, возможны ошибки)</p>
+      </div>
+      <div class="actions">
+        <button id="saveAllBtn" class="primary">Сохранить все</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Статус</h2>
+      <div class="status-grid">
+        <div>
+          <div class="label">ViaProxy (локальное подключение)</div>
+          <div id="proxyStatus" class="status">не проверено</div>
+          <button id="checkProxyBtn" class="ghost">Проверить</button>
+        </div>
+        <div>
+          <div class="label">Ollama (модели)</div>
+          <div id="ollamaStatus" class="status">не проверено</div>
+          <button id="refreshModelsBtn" class="ghost">Обновить список</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Подключение бота</h2>
+      <div class="grid">
+        <label>BOT_HOST<input id="botHost" type="text" /></label>
+        <label>BOT_PORT<input id="botPort" type="number" /></label>
+        <label>BOT_USERNAME<input id="botUsername" type="text" /></label>
+        <label>BOT_VERSION<input id="botVersion" type="text" /></label>
+        <label>BOT_AUTH<input id="botAuth" type="text" /></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ViaProxy / сервер</h2>
+      <div class="grid">
+        <label>MC_SERVER_HOST<input id="serverHost" type="text" /></label>
+        <label>MC_SERVER_PORT<input id="serverPort" type="number" /></label>
+      </div>
+      <p class="hint">Для работы бот подключается к локальному прокси (BOT_HOST/BOT_PORT). Серверные данные нужны для справки.</p>
+    </section>
+
+    <section class="card">
+      <h2>Ollama / LLM</h2>
+      <div class="grid">
+        <label>OLLAMA_HOST<input id="ollamaHost" type="text" /></label>
+        <label>OLLAMA_MODEL<input id="ollamaModel" type="text" /></label>
+        <label>OLLAMA_CONTEXT<input id="ollamaContext" type="number" /></label>
+        <label>OLLAMA_TEMPERATURE<input id="ollamaTemperature" type="number" step="0.1" /></label>
+      </div>
+      <div class="models">
+        <div class="label">Модели в Ollama</div>
+        <div class="model-row">
+          <select id="modelSelect"></select>
+          <button id="useModelBtn" class="ghost">Выбрать модель</button>
+          <button id="copyPullBtn" class="ghost">Скопировать команду pull</button>
+        </div>
+        <div id="modelHint" class="hint"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Поведение</h2>
+      <div class="grid">
+        <label>defaultMode
+          <select id="defaultMode">
+            <option value="manual">manual</option>
+            <option value="autonomous">autonomous</option>
+            <option value="survival">survival</option>
+          </select>
+        </label>
+        <label>commandPrefixes (через запятую)<input id="commandPrefixes" type="text" /></label>
+        <label>chatCooldown (мс)<input id="chatCooldown" type="number" /></label>
+        <label>globalChatCooldown (мс)<input id="globalChatCooldown" type="number" /></label>
+        <label>maxChatHistory<input id="maxChatHistory" type="number" /></label>
+        <label>socialRoundInterval (мс)<input id="socialRoundInterval" type="number" /></label>
+        <label>perPlayerChatCooldown (мс)<input id="perPlayerChatCooldown" type="number" /></label>
+        <label>maxFactsPerPlayer<input id="maxFactsPerPlayer" type="number" /></label>
+        <label>etiquetteMuteMinutes<input id="etiquetteMuteMinutes" type="number" /></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>System prompt</h2>
+      <textarea id="systemPrompt" rows="14"></textarea>
+      <div class="prompt-actions">
+        <button id="savePromptBtn" class="primary">Сохранить prompt</button>
+        <button id="loadDefaultPromptBtn" class="ghost">Загрузить по умолчанию</button>
+      </div>
+      <div id="promptSource" class="hint"></div>
+    </section>
+
+    <section class="card">
+      <h2>Сохранение</h2>
+      <div class="actions">
+        <button id="saveConfigBtn" class="primary">Сохранить конфиг</button>
+        <span id="saveStatus" class="hint"></span>
+      </div>
+    </section>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

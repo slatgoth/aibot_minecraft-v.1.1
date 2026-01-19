@@ -1,0 +1,198 @@
+const qs = (id) => document.getElementById(id);
+
+const fields = {
+    botHost: qs('botHost'),
+    botPort: qs('botPort'),
+    botUsername: qs('botUsername'),
+    botVersion: qs('botVersion'),
+    botAuth: qs('botAuth'),
+    serverHost: qs('serverHost'),
+    serverPort: qs('serverPort'),
+    ollamaHost: qs('ollamaHost'),
+    ollamaModel: qs('ollamaModel'),
+    ollamaContext: qs('ollamaContext'),
+    ollamaTemperature: qs('ollamaTemperature'),
+    defaultMode: qs('defaultMode'),
+    commandPrefixes: qs('commandPrefixes'),
+    chatCooldown: qs('chatCooldown'),
+    globalChatCooldown: qs('globalChatCooldown'),
+    maxChatHistory: qs('maxChatHistory'),
+    socialRoundInterval: qs('socialRoundInterval'),
+    perPlayerChatCooldown: qs('perPlayerChatCooldown'),
+    maxFactsPerPlayer: qs('maxFactsPerPlayer'),
+    etiquetteMuteMinutes: qs('etiquetteMuteMinutes'),
+    systemPrompt: qs('systemPrompt')
+};
+
+const proxyStatus = qs('proxyStatus');
+const ollamaStatus = qs('ollamaStatus');
+const modelSelect = qs('modelSelect');
+const modelHint = qs('modelHint');
+const promptSource = qs('promptSource');
+const saveStatus = qs('saveStatus');
+
+const readNumber = (value, fallback) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const parsePrefixes = (raw) => {
+    if (!raw) return [];
+    return String(raw)
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean);
+};
+
+const fillForm = (config) => {
+    fields.botHost.value = config.bot?.host || '';
+    fields.botPort.value = config.bot?.port ?? '';
+    fields.botUsername.value = config.bot?.username || '';
+    fields.botVersion.value = config.bot?.version || '';
+    fields.botAuth.value = config.bot?.auth || '';
+
+    fields.serverHost.value = config.proxy?.targetHost || '';
+    fields.serverPort.value = config.proxy?.targetPort ?? '';
+
+    fields.ollamaHost.value = config.llm?.host || '';
+    fields.ollamaModel.value = config.llm?.defaultModel || '';
+    fields.ollamaContext.value = config.llm?.contextWindow ?? '';
+    fields.ollamaTemperature.value = config.llm?.temperature ?? '';
+
+    fields.defaultMode.value = config.behavior?.defaultMode || 'manual';
+    fields.commandPrefixes.value = (config.behavior?.commandPrefixes || []).join(', ');
+    fields.chatCooldown.value = config.behavior?.chatCooldown ?? '';
+    fields.globalChatCooldown.value = config.behavior?.globalChatCooldown ?? '';
+    fields.maxChatHistory.value = config.behavior?.maxChatHistory ?? '';
+    fields.socialRoundInterval.value = config.behavior?.socialRoundInterval ?? '';
+    fields.perPlayerChatCooldown.value = config.behavior?.perPlayerChatCooldown ?? '';
+    fields.maxFactsPerPlayer.value = config.behavior?.maxFactsPerPlayer ?? '';
+    fields.etiquetteMuteMinutes.value = config.behavior?.etiquetteMuteMinutes ?? '';
+};
+
+const buildConfigPayload = () => {
+    return {
+        bot: {
+            host: fields.botHost.value.trim(),
+            port: readNumber(fields.botPort.value, 25568),
+            username: fields.botUsername.value.trim(),
+            version: fields.botVersion.value.trim(),
+            auth: fields.botAuth.value.trim()
+        },
+        proxy: {
+            targetHost: fields.serverHost.value.trim(),
+            targetPort: readNumber(fields.serverPort.value, 25565)
+        },
+        llm: {
+            host: fields.ollamaHost.value.trim(),
+            defaultModel: fields.ollamaModel.value.trim(),
+            contextWindow: readNumber(fields.ollamaContext.value, 8192),
+            temperature: readNumber(fields.ollamaTemperature.value, 0.7)
+        },
+        behavior: {
+            defaultMode: fields.defaultMode.value,
+            commandPrefixes: parsePrefixes(fields.commandPrefixes.value),
+            chatCooldown: readNumber(fields.chatCooldown.value, 5000),
+            globalChatCooldown: readNumber(fields.globalChatCooldown.value, 0),
+            maxChatHistory: readNumber(fields.maxChatHistory.value, 20),
+            socialRoundInterval: readNumber(fields.socialRoundInterval.value, 500000),
+            perPlayerChatCooldown: readNumber(fields.perPlayerChatCooldown.value, 120000),
+            maxFactsPerPlayer: readNumber(fields.maxFactsPerPlayer.value, 50),
+            etiquetteMuteMinutes: readNumber(fields.etiquetteMuteMinutes.value, 10)
+        }
+    };
+};
+
+const updateModelList = (models) => {
+    modelSelect.innerHTML = '';
+    if (!models || models.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'моделей нет';
+        modelSelect.appendChild(option);
+        modelHint.textContent = 'Нет моделей. Рекомендуется: ollama pull deepseek-llm';
+        return;
+    }
+    models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model;
+        option.textContent = model;
+        modelSelect.appendChild(option);
+    });
+    modelHint.textContent = `Найдено моделей: ${models.length}`;
+};
+
+const loadPrompt = async () => {
+    const prompt = await window.api.loadPrompt();
+    fields.systemPrompt.value = prompt.text || '';
+    promptSource.textContent = prompt.source === 'user'
+        ? `Источник: пользовательский (${prompt.path})`
+        : `Источник: по умолчанию (${prompt.path})`;
+};
+
+const refreshModels = async () => {
+    ollamaStatus.textContent = 'проверяю...';
+    const result = await window.api.listModels(fields.ollamaHost.value);
+    updateModelList(result.models);
+    if (result.models.length > 0) {
+        ollamaStatus.textContent = `моделей: ${result.models.length} (${result.source})`;
+    } else {
+        ollamaStatus.textContent = result.error ? `ошибка: ${result.error}` : 'моделей нет';
+    }
+};
+
+const checkProxy = async () => {
+    proxyStatus.textContent = 'проверяю...';
+    const result = await window.api.checkProxy(fields.botHost.value.trim(), fields.botPort.value);
+    proxyStatus.textContent = result.ok ? 'подключение ок' : `ошибка: ${result.error}`;
+};
+
+const saveConfig = async () => {
+    const payload = buildConfigPayload();
+    const result = await window.api.saveConfig(payload);
+    saveStatus.textContent = result.ok ? `сохранено: ${result.path}` : 'ошибка сохранения';
+};
+
+const savePrompt = async () => {
+    const result = await window.api.savePrompt(fields.systemPrompt.value);
+    promptSource.textContent = result.ok ? `Источник: пользовательский (${result.path})` : 'ошибка сохранения prompt';
+};
+
+const saveAll = async () => {
+    await saveConfig();
+    await savePrompt();
+};
+
+const init = async () => {
+    const configResult = await window.api.loadConfig();
+    fillForm(configResult.config);
+    await loadPrompt();
+    await refreshModels();
+};
+
+qs('saveConfigBtn').addEventListener('click', saveConfig);
+qs('savePromptBtn').addEventListener('click', savePrompt);
+qs('saveAllBtn').addEventListener('click', saveAll);
+qs('refreshModelsBtn').addEventListener('click', refreshModels);
+qs('checkProxyBtn').addEventListener('click', checkProxy);
+qs('useModelBtn').addEventListener('click', () => {
+    if (modelSelect.value) {
+        fields.ollamaModel.value = modelSelect.value;
+    }
+});
+qs('copyPullBtn').addEventListener('click', async () => {
+    const command = 'ollama pull deepseek-llm';
+    try {
+        await navigator.clipboard.writeText(command);
+        modelHint.textContent = 'Команда скопирована в буфер обмена.';
+    } catch (e) {
+        modelHint.textContent = `Скопируй вручную: ${command}`;
+    }
+});
+qs('loadDefaultPromptBtn').addEventListener('click', async () => {
+    const defaultPrompt = await window.api.loadDefaultPrompt();
+    fields.systemPrompt.value = defaultPrompt.text || '';
+    promptSource.textContent = `Источник: по умолчанию (${defaultPrompt.path})`;
+});
+
+init();
