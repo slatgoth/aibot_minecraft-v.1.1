@@ -1,0 +1,30 @@
+const winston = require('winston');
+const config = require('./config');
+const path = require('path');
+const fs = require('fs');
+
+fs.mkdirSync(config.paths.logs, { recursive: true });
+
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.File({ filename: path.join(config.paths.logs, 'error.log'), level: 'error' }),
+        new winston.transports.File({ filename: path.join(config.paths.logs, 'combined.log') }),
+        new winston.transports.Console({
+            format: winston.format.combine(
+                winston.format.colorize(),
+                winston.format.simple()
+            )
+        })
+    ]
+});
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+module.exports = { logger, sleep };
