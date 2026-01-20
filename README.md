@@ -24,13 +24,13 @@
 1. Установи Java (JRE/JDK) 17+.
 2. Установи Ollama:
    - Запусти сервер: `ollama serve`
-   - Скачай модель: `ollama pull gpt-oss:20b` (или более легкую, например `llama3.1:8b`)
+   - Скачай модель: `ollama pull [name of model]`
    - Важно: крупные модели требуют больше RAM. Если не хватает памяти, бот переключится на fallback модель.
 3. Скачай EXE из Releases:
    - https://github.com/slatgoth/aibot_minecraft/releases
 4. Запусти EXE.
 5. В панели заполни ViaProxy:
-   - `MC_SERVER_HOST/MC_SERVER_PORT` - адрес сервера (например, `maryflorett.aternos.me:25565`).
+   - `MC_SERVER_HOST/MC_SERVER_PORT` - адрес сервера (например, `example:25565`).
    - `auth-method`: NONE для оффлайн сервера, ACCOUNT для онлайн.
    - `target-version`: версия сервера или Auto Detect.
 6. В панели подключения бота:
