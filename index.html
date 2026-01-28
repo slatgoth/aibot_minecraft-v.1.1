@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Minecraft AI Bot // Control Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f0c29;
+            --glass-bg: rgba(30, 30, 46, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent: #7b2cbf;
+            --accent-glow: #9d4edd;
+            --text-main: #e0e1dd;
+            --text-dim: #778da9;
+            --term-bg: rgba(10, 10, 15, 0.9);
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            user-select: none;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            background: rgba(13, 13, 20, 0.6);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--glass-border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .brand {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent-glow);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(157, 78, 221, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-tabs { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+        .nav-btn {
+            background: transparent; border: 1px solid transparent; color: var(--text-dim);
+            padding: 10px; text-align: left; cursor: pointer; border-radius: 8px; transition: 0.2s;
+            font-weight: 600; text-transform: uppercase; font-size: 0.8rem; display: flex; align-items: center; gap: 10px;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav-btn.active { background: rgba(123, 44, 191, 0.15); color: var(--accent-glow); border-color: rgba(123, 44, 191, 0.3); }
+
+        .card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 15px; transition: 0.2s; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: 600; font-size: 0.8rem; color: #fff; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
+
+        .input-group { margin-bottom: 10px; }
+        label { display: block; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select, textarea { width: 100%; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--glass-border); color: #fff; padding: 8px 10px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; transition: 0.2s; box-sizing: border-box; }
+        input:focus, textarea:focus { outline: none; border-color: var(--accent-glow); background: rgba(0, 0, 0, 0.6); }
+
+        button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
+        .btn-primary { background: linear-gradient(90deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 4px 10px rgba(123, 44, 191, 0.3); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(123, 44, 191, 0.5); }
+        .btn-stop { background: linear-gradient(90deg, #d63031, #ff7675); color: white; }
+        .btn-secondary { background: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--glass-border); }
+
+        .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--glass-border); font-size: 0.75rem; color: var(--text-dim); text-align: center; }
+        .boosty-link { display: inline-flex; align-items: center; gap: 6px; color: #ff8c00; text-decoration: none; background: rgba(255, 140, 0, 0.1); padding: 5px 12px; border-radius: 20px; margin-top: 8px; border: 1px solid rgba(255, 140, 0, 0.2); transition: 0.3s; }
+        .boosty-link:hover { transform: scale(1.05); background: rgba(255, 140, 0, 0.2); }
+
+        .main-content { padding: 20px; height: 100vh; box-sizing: border-box; background: rgba(0,0,0,0.2); position: relative; }
+        .page { display: none; height: 100%; flex-direction: column; gap: 15px; animation: fadeIn 0.3s ease; }
+        .page.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Inventory Styles --- */
+        .inv-container {
+            background: rgba(198, 198, 198, 0.1); /* MC-like greyish tint but glass */
+            border: 2px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .inv-section { display: flex; gap: 10px; }
+        .inv-grid-main { display: grid; grid-template-columns: repeat(9, 40px); gap: 4px; }
+        .inv-grid-hotbar { display: grid; grid-template-columns: repeat(9, 40px); gap: 4px; margin-top: 10px; }
+        
+        .inv-slot {
+            width: 40px; height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            transition: 0.1s;
+        }
+        .inv-slot.selected { border-color: var(--accent-glow); box-shadow: 0 0 8px rgba(157, 78, 221, 0.5); }
+        .inv-slot.drag-over { border-color: #fff; background: rgba(255,255,255,0.15); }
+        .inv-slot:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
+        .inv-slot[draggable="true"] { cursor: grab; }
+        .inv-slot[draggable="true"]:active { cursor: grabbing; }
+        
+        .item-icon { width: 32px; height: 32px; image-rendering: pixelated; }
+        .item-count {
+            position: absolute; bottom: 2px; right: 2px;
+            font-family: 'Minecraft', 'JetBrains Mono', monospace;
+            font-size: 0.7rem; color: #fff; text-shadow: 1px 1px 0 #000;
+            font-weight: bold;
+        }
+        
+        .slot-label { font-size: 0.6rem; color: #aaa; margin-bottom: 2px; text-transform: uppercase; }
+        .inv-actions { display: grid; grid-template-columns: 1fr 220px; gap: 12px; width: 100%; max-width: 600px; margin-top: 12px; }
+        .drop-zone {
+            border: 1px dashed rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            background: rgba(0,0,0,0.25);
+            transition: 0.2s;
+        }
+        .drop-zone.drag-over { border-color: #ff7675; color: #ff7675; background: rgba(214, 48, 49, 0.1); }
+        .drop-controls { display: grid; gap: 8px; }
+        .inv-help { margin-top: 8px; color: var(--text-dim); font-size: 0.75rem; }
+
+        /* Existing Styles... */
+        .terminal-window { flex-grow: 1; background: var(--term-bg); border: 1px solid var(--glass-border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .terminal-toolbar { background: rgba(255, 255, 255, 0.03); padding: 8px 15px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; }
+        .term-btn { padding: 4px 10px; width: auto; font-size: 0.7rem; color: var(--text-dim); background: transparent; }
+        .term-btn.active { color: var(--accent-glow); background: rgba(157, 78, 221, 0.1); border-radius: 4px; }
+        #log-container { flex-grow: 1; padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; overflow-y: auto; color: #dcdde1; }
+        #log-container::-webkit-scrollbar { width: 8px; }
+        #log-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        .log-line { margin-bottom: 3px; display: flex; }
+        .log-line.hidden { display: none; }
+        .log-time { color: var(--accent-glow); margin-right: 15px; min-width: 65px; font-size: 0.7rem; opacity: 0.6; font-weight: 700; }
+        .log-content { flex-grow: 1; }
+        .type-chat .user { color: #74b9ff; font-weight: bold; }
+        .type-ai { color: #ffd32a; font-style: italic; opacity: 0.8; }
+        .type-memory { color: #e056fd; font-size: 0.75rem; font-weight: 600; opacity: 0.9; letter-spacing: 0.5px; } .type-memory::before { content: '💾 '; margin-right: 5px; }
+        .type-action { color: #00cec9; font-weight: bold; letter-spacing: 0.5px; } .type-action::before { content: '⚡ '; }
+        .type-error { color: #ff7675; background: rgba(214, 48, 49, 0.1); padding: 2px 6px; border-radius: 4px; }
+        .memory-grid { display: grid; grid-template-columns: 250px 1fr; gap: 20px; height: 100%; }
+        .player-list { background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px; overflow-y: auto; }
+        .player-item { padding: 10px; border-bottom: 1px solid var(--glass-border); cursor: pointer; transition: 0.2s; border-radius: 6px; }
+        .player-item:hover { background: rgba(255,255,255,0.05); }
+        .player-item.active { background: rgba(123, 44, 191, 0.2); border: 1px solid var(--accent); }
+        .player-name { font-weight: bold; color: #fff; }
+        .player-meta { font-size: 0.7rem; color: var(--text-dim); }
+        .memory-editor { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .control-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; height: 100%; }
+        .directive-panel { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .manual-panel { background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+        .wasd-grid { display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(2, 60px); gap: 10px; }
+        .ctrl-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: 0.1s; display: flex; align-items: center; justify-content: center; }
+        .ctrl-btn:active, .ctrl-btn.pressed { background: var(--accent); box-shadow: 0 0 15px var(--accent-glow); transform: scale(0.95); }
+        .action-grid { display: flex; gap: 10px; width: 100%; }
+        .tts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; }
+        .tts-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .tts-row { display: flex; gap: 10px; align-items: center; }
+        .tts-status { font-size: 0.8rem; color: var(--text-dim); }
+        .tts-status.ok { color: #55efc4; }
+        .tts-status.err { color: #ff7675; }
+        .tts-toggle { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--text-main); }
+        .tts-toggle input { width: auto; }
+        .file-row { display: grid; grid-template-columns: 1fr 120px; gap: 10px; }
+        .tts-console { background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: 10px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #dcdde1; height: 220px; overflow-y: auto; }
+        .tts-log-line { display: flex; gap: 8px; margin-bottom: 4px; }
+        .tts-log-time { color: var(--accent-glow); opacity: 0.7; min-width: 60px; }
+        .tts-log-info { color: #dcdde1; }
+        .tts-log-warn { color: #ffd32a; }
+        .tts-log-error { color: #ff7675; }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">
+            > Minecraft AI Bot 
+            <span style="font-size:0.6rem; background:var(--glass-border); padding:2px 5px; border-radius:4px; margin-left:5px; color:var(--text-dim);">v1.3.0</span>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-btn active" onclick="switchPage('terminal')">🖥️ TERMINAL</button>
+            <button class="nav-btn" onclick="switchPage('control')">🎮 CONTROL DECK</button>
+            <button class="nav-btn" onclick="switchPage('inventory')">📦 INVENTORY</button>
+            <button class="nav-btn" onclick="switchPage('memory')">🧠 MEMORY MATRIX</button>
+            <button class="nav-btn" onclick="switchPage('voice')">🎤 VOICE CORE</button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>// CONNECTION</span>
+                <span id="status-proxy" class="status-badge">OFFLINE</span>
+            </div>
+            <div class="input-group"><label>TARGET IP</label><input type="text" id="proxyTarget"></div>
+            <div class="input-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div><label>VERSION</label><input type="text" id="proxyVersion"></div>
+                <div><label>PORT</label><input type="number" id="botPort" value="25568" readonly style="opacity: 0.5;"></div>
+            </div>
+            <button id="toggleProxy" class="btn-secondary">INITIALIZE PROXY</button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>// BOT AGENT</span>
+                <span id="status-bot" class="status-badge">OFFLINE</span>
+            </div>
+            <div class="input-group"><label>USERNAME</label><input type="text" id="botName"></div>
+            <div class="input-group"><label>JAVA VERSION</label><input type="text" id="botVersion"></div>
+            <button id="toggleBot" class="btn-primary">LAUNCH BOT</button>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span>// NEURAL CORE</span></div>
+            <div class="input-group">
+                <label>API KEY (Leave empty for Local Ollama)</label>
+                <input type="password" id="apiKey" placeholder="sk-..." style="border-color: var(--accent);">
+            </div>
+            <div class="input-group"><label>MODEL</label><select id="llmModel"><option>Loading...</option></select></div>
+            <div class="input-group"><label>SYSTEM PROMPT</label><textarea id="llmPrompt" rows="3"></textarea></div>
+        </div>
+
+        <div class="sidebar-footer">
+            <span>Made by SLATGOTH</span>
+            <a href="https://boosty.to/slatgoth" target="_blank" class="boosty-link">⚡ Support on Boosty</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- PAGE 1: TERMINAL -->
+        <div id="page-terminal" class="page active">
+            <div class="terminal-window">
+                <div class="terminal-toolbar">
+                    <div style="display:flex; gap:5px">
+                        <button class="term-btn active" onclick="setFilter('all')">ALL</button>
+                        <button class="term-btn" onclick="setFilter('type-chat')">CHAT</button>
+                        <button class="term-btn" onclick="setFilter('type-ai')">AI</button>
+                        <button class="term-btn" onclick="setFilter('type-action')">ACTIONS</button>
+                        <button class="term-btn" onclick="setFilter('type-error')">LOGS</button>
+                    </div>
+                    <div style="display:flex; gap:5px">
+                        <button class="term-btn" onclick="copyLogs()">📋</button>
+                        <button class="term-btn" onclick="clearLogs()">🗑️</button>
+                    </div>
+                </div>
+                <div id="log-container">
+                    <div class="log-line type-info">
+                        <span class="log-time">[SYSTEM]</span>
+                        <span class="log-content">Terminal initialized. Waiting for uplink...</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px">
+                <input type="text" id="consoleInput" placeholder="> Enter command..." autocomplete="off">
+                <button onclick="sendCommand()" class="btn-primary" style="width: 100px;">SEND</button>
+            </div>
+        </div>
+
+        <!-- PAGE 2: CONTROL DECK -->
+        <div id="page-control" class="page">
+            <div class="control-layout">
+                <!-- Neural Directives -->
+                <div class="directive-panel">
+                    <div class="card-header"><span>🧠 NEURAL OVERRIDE (DIRECTIVE)</span></div>
+                    <div style="flex-grow:1; display:flex; flex-direction:column; justify-content:center; gap:15px; text-align:center; opacity:0.7;">
+                        <div style="font-size:3rem;">🛰️</div>
+                        <div>Send high-priority instruction directly to the AI Core.<br>Bypasses standard chat processing.</div>
+                    </div>
+                    <div class="input-group">
+                        <label>DIRECTIVE</label>
+                        <textarea id="directiveInput" rows="3" placeholder="Ex: Stop what you are doing and follow me immediately."></textarea>
+                    </div>
+                    <button class="btn-primary" onclick="sendDirective()">EXECUTE ORDER</button>
+                </div>
+
+                <!-- Manual Controls -->
+                <div class="manual-panel">
+                    <div class="card-header" style="width:100%"><span>🕹️ MANUAL OVERRIDE</span></div>
+                    <div class="wasd-grid">
+                        <div></div>
+                        <button class="ctrl-btn" onmousedown="startAction('forward')" onmouseup="stopAction('forward')" onmouseleave="stopAction('forward')">W</button>
+                        <div></div>
+                        <button class="ctrl-btn" onmousedown="startAction('left')" onmouseup="stopAction('left')" onmouseleave="stopAction('left')">A</button>
+                        <button class="ctrl-btn" onmousedown="startAction('back')" onmouseup="stopAction('back')" onmouseleave="stopAction('back')">S</button>
+                        <button class="ctrl-btn" onmousedown="startAction('right')" onmouseup="stopAction('right')" onmouseleave="stopAction('right')">D</button>
+                    </div>
+                    <div style="display:flex; gap:10px; width:100%;">
+                        <button class="ctrl-btn" style="flex-grow:1" onmousedown="startAction('jump')" onmouseup="stopAction('jump')" onmouseleave="stopAction('jump')">SPACE (JUMP)</button>
+                    </div>
+                    <div class="action-grid">
+                        <button class="ctrl-btn" style="flex-grow:1; background:rgba(214, 48, 49, 0.3);" onmousedown="startAction('attack')" onmouseup="stopAction('attack')" onmouseleave="stopAction('attack')">⚔️ ATTACK</button>
+                        <button class="ctrl-btn" style="flex-grow:1; background:rgba(255, 118, 117, 0.1);" onclick="triggerAction('stop')">🛑 STOP ALL</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 3: INVENTORY -->
+        <div id="page-inventory" class="page">
+            <div class="card" style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="card-header" style="width:100%; max-width:600px;">
+                    <span>📦 LIVE INVENTORY</span>
+                    <button class="btn-secondary" style="width:auto; padding:5px 10px;" onclick="refreshInventory()">REFRESH</button>
+                </div>
+                
+                <div class="inv-container">
+                    <!-- Armor -->
+                    <div style="display:flex; gap:20px;">
+                        <div>
+                            <div class="slot-label">ARMOR</div>
+                            <div class="inv-section">
+                                <div class="inv-slot" id="slot-5"></div>
+                                <div class="inv-slot" id="slot-6"></div>
+                                <div class="inv-slot" id="slot-7"></div>
+                                <div class="inv-slot" id="slot-8"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="slot-label">OFFHAND</div>
+                            <div class="inv-slot" id="slot-45"></div>
+                        </div>
+                    </div>
+
+                    <!-- Main Inventory -->
+                    <div>
+                        <div class="slot-label">INVENTORY</div>
+                        <div class="inv-grid-main" id="inv-main">
+                            <!-- Slots 9-35 generated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Hotbar -->
+                    <div>
+                        <div class="slot-label">HOTBAR</div>
+                        <div class="inv-grid-hotbar" id="inv-hotbar">
+                            <!-- Slots 36-44 generated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inv-actions">
+                    <div id="dropZone" class="drop-zone">DROP ZONE (drag item here)</div>
+                    <div class="drop-controls">
+                        <input type="number" id="dropCount" min="1" placeholder="count (optional)">
+                        <button class="btn-stop" id="dropSelectedBtn">DROP SELECTED</button>
+                    </div>
+                </div>
+                <div class="inv-help">Drag items to move. Select an item and drop it, or drag to the drop zone.</div>
+                
+                <div style="margin-top:20px; color:var(--text-dim); font-size:0.8rem;">
+                    * Icons powered by PrismarineJS Assets
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 4: MEMORY MATRIX -->
+        <div id="page-memory" class="page">
+            <div class="card" style="height: 100%; padding: 0; overflow: hidden; background: transparent; border: none;">
+                <div class="memory-grid">
+                    <div class="player-list" id="memPlayerList"></div>
+                    <div class="memory-editor">
+                        <div class="card-header">
+                            <span>// MEMORY EDITOR</span>
+                            <button class="btn-primary" style="width: auto; padding: 5px 15px;" onclick="saveMemoryDB()">SAVE DATABASE</button>
+                        </div>
+                        <div class="input-group">
+                            <label>SERVER GLOBAL INFO (FACTS)</label>
+                            <textarea id="memServerInfo" rows="4" placeholder="Important coordinates, rules, base location..."></textarea>
+                        </div>
+                        <hr style="border: 0; border-top: 1px solid var(--glass-border); width: 100%; margin: 10px 0;">
+                        <div id="playerEditor" style="display:none; flex-direction: column; gap: 10px;">
+                            <div class="input-group">
+                                <label>SELECTED PLAYER</label>
+                                <input type="text" id="memPlayerName" readonly style="background: rgba(0,0,0,0.5); color: var(--accent-glow); font-weight: bold;">
+                            </div>
+                            <div class="input-group">
+                                <label>RELATION STATUS</label>
+                                <select id="memRelation">
+                                    <option value="friend">Friend (Ally)</option>
+                                    <option value="neutral">Neutral</option>
+                                    <option value="enemy">Enemy (Hostile)</option>
+                                    <option value="unknown">Unknown</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>NOTES / MEMORY</label>
+                                <textarea id="memNotes" rows="6" placeholder="What does the bot remember about this person?"></textarea>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <button class="btn-stop" onclick="deletePlayerMemory()">FORGET PLAYER</button>
+                            </div>
+                        </div>
+                        <div id="noPlayerSelected" style="text-align: center; color: var(--text-dim); margin-top: 50px;">
+                            Select a player from the list to edit memory.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 5: VOICE CORE -->
+        <div id="page-voice" class="page">
+            <div class="tts-grid">
+                <div class="tts-card">
+                    <div class="card-header">
+                        <span>🎤 TTS CONFIG</span>
+                        <span id="ttsStatus" class="tts-status">TTS disabled</span>
+                    </div>
+                    <div class="tts-toggle">
+                        <input type="checkbox" id="ttsEnabled">
+                        <label for="ttsEnabled">Enable TTS</label>
+                    </div>
+                    <div class="input-group">
+                        <label>MODEL (.ONNX)</label>
+                        <div class="file-row">
+                            <input type="text" id="ttsModelPath" placeholder="C:\\path\\to\\voice.onnx">
+                            <button class="btn-secondary" id="ttsBrowseModel">BROWSE</button>
+                        </div>
+                        <input type="file" id="ttsModelPicker" accept=".onnx" style="display:none;">
+                    </div>
+                    <div class="input-group">
+                        <label>CONFIG (.JSON)</label>
+                        <div class="file-row">
+                            <input type="text" id="ttsConfigPath" placeholder="C:\\path\\to\\voice.onnx.json">
+                            <button class="btn-secondary" id="ttsBrowseConfig">BROWSE</button>
+                        </div>
+                        <input type="file" id="ttsConfigPicker" accept=".json" style="display:none;">
+                    </div>
+                    <div class="input-group">
+                        <label>DEVICE</label>
+                        <select id="ttsDevice">
+                            <option value="cpu">cpu</option>
+                            <option value="cuda">cuda</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>MAX CHARS</label>
+                        <input type="number" id="ttsMaxChars" value="220">
+                    </div>
+                    <div class="input-group">
+                        <label>QUEUE LIMIT</label>
+                        <input type="number" id="ttsQueueLimit" value="2">
+                    </div>
+                    <div class="tts-row">
+                        <button class="btn-primary" id="ttsApply" style="flex:1;">APPLY SETTINGS</button>
+                        <button class="btn-secondary" id="ttsListModels" style="flex:1;">LIST MODELS</button>
+                    </div>
+                </div>
+                <div class="tts-card">
+                    <div class="card-header"><span>🧪 TTS TEST</span></div>
+                    <div class="input-group">
+                        <label>TEXT</label>
+                        <textarea id="ttsTestText" rows="6" placeholder="Test phrase..."></textarea>
+                    </div>
+                    <button class="btn-primary" id="ttsTestBtn">SPEAK TEST</button>
+                    <div class="tts-status">Route audio to VB-Audio Cable and set Simple Voice Chat mic to CABLE Output.</div>
+                    <div class="card-header" style="margin-top:10px;"><span>📜 TTS CONSOLE</span><button class="btn-secondary" style="width:auto; padding:4px 8px;" id="ttsClearLog">CLEAR</button></div>
+                    <div id="ttsLog" class="tts-console"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { ipcRenderer, shell } = require('electron');
+
+        // --- Navigation ---
+        window.switchPage = (pageName) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageName}`).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            if (pageName === 'memory') refreshMemoryUI();
+            if (pageName === 'inventory') refreshInventory();
+        };
+
+        // --- Inventory Logic ---
+        let inventoryItems = {};
+        let selectedSlot = null;
+
+        function initInventoryGrid() {
+            const mainGrid = document.getElementById('inv-main');
+            const hotbarGrid = document.getElementById('inv-hotbar');
+            mainGrid.innerHTML = '';
+            hotbarGrid.innerHTML = '';
+
+            // Main Inventory (Slots 9-35)
+            for (let i = 9; i <= 35; i++) {
+                const div = document.createElement('div');
+                div.className = 'inv-slot';
+                div.id = `slot-${i}`;
+                div.dataset.slot = i;
+                mainGrid.appendChild(div);
+            }
+            // Hotbar (Slots 36-44)
+            for (let i = 36; i <= 44; i++) {
+                const div = document.createElement('div');
+                div.className = 'inv-slot';
+                div.id = `slot-${i}`;
+                div.dataset.slot = i;
+                hotbarGrid.appendChild(div);
+            }
+        }
+        initInventoryGrid();
+
+        function updateSelectedUI() {
+            document.querySelectorAll('.inv-slot').forEach(el => {
+                const slot = Number(el.dataset.slot);
+                if (Number.isInteger(slot) && slot === selectedSlot) el.classList.add('selected');
+                else el.classList.remove('selected');
+            });
+        }
+
+        function selectSlot(slot) {
+            if (!Number.isInteger(slot)) return;
+            selectedSlot = slot;
+            updateSelectedUI();
+        }
+
+        function getDropCount() {
+            const input = document.getElementById('dropCount');
+            const count = Number.parseInt(input.value, 10);
+            return Number.isFinite(count) && count > 0 ? count : null;
+        }
+
+        function moveItem(from, to) {
+            ipcRenderer.send('move-item', { from, to });
+            setTimeout(refreshInventory, 350);
+        }
+
+        function dropItem(slot) {
+            if (!Number.isInteger(slot)) return;
+            if (!inventoryItems[slot]) return;
+            ipcRenderer.send('drop-item', { slot, count: getDropCount() });
+            setTimeout(refreshInventory, 350);
+        }
+
+        function bindSlotInteractions() {
+            document.querySelectorAll('.inv-slot').forEach(el => {
+                if (!el.dataset.slot && el.id && el.id.startsWith('slot-')) {
+                    el.dataset.slot = el.id.replace('slot-', '');
+                }
+                const slot = Number(el.dataset.slot);
+                el.addEventListener('click', () => selectSlot(slot));
+                el.addEventListener('dragstart', (e) => {
+                    if (!inventoryItems[slot]) { e.preventDefault(); return; }
+                    e.dataTransfer.setData('text/plain', String(slot));
+                    e.dataTransfer.effectAllowed = 'move';
+                    selectSlot(slot);
+                });
+                el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drag-over'); });
+                el.addEventListener('dragleave', () => { el.classList.remove('drag-over'); });
+                el.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    el.classList.remove('drag-over');
+                    const from = Number(e.dataTransfer.getData('text/plain'));
+                    const to = Number(el.dataset.slot);
+                    if (Number.isInteger(from) && Number.isInteger(to) && from !== to) moveItem(from, to);
+                });
+            });
+        }
+
+        bindSlotInteractions();
+
+        window.refreshInventory = () => {
+            ipcRenderer.send('get-inventory');
+        };
+
+        ipcRenderer.on('inventory-update', (e, data) => {
+            inventoryItems = {};
+            // Clear all slots first
+            document.querySelectorAll('.inv-slot').forEach(el => el.innerHTML = '');
+            
+            // Fill data
+            data.forEach(item => {
+                if (!item) return;
+                inventoryItems[item.slot] = item;
+                const slotEl = document.getElementById(`slot-${item.slot}`);
+                if (slotEl) {
+                    // Try to load icon from PrismarineJS assets (fallback to simple block if fail)
+                    // Note: Version 1.16.4 assets are generally compatible for icons
+                    const iconUrl = `https://raw.githubusercontent.com/PrismarineJS/minecraft-assets/master/data/1.16.4/items/${item.name}.png`;
+                    
+                    slotEl.innerHTML = `
+                        <img src="${iconUrl}" class="item-icon" onerror="this.style.display='none'; this.parentElement.innerText='${item.name.substring(0,3)}'">
+                        <span class="item-count">${item.count > 1 ? item.count : ''}</span>
+                    `;
+                    slotEl.title = `${item.displayName} (x${item.count})`;
+                }
+            });
+            document.querySelectorAll('.inv-slot').forEach(el => {
+                const slot = Number(el.dataset.slot);
+                el.draggable = !!inventoryItems[slot];
+            });
+            updateSelectedUI();
+        });
+
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-over'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const from = Number(e.dataTransfer.getData('text/plain'));
+            if (Number.isInteger(from)) { selectSlot(from); dropItem(from); }
+        });
+        document.getElementById('dropSelectedBtn').addEventListener('click', () => {
+            if (Number.isInteger(selectedSlot)) dropItem(selectedSlot);
+        });
+
+        // --- Manual Control Logic ---
+        window.startAction = (action) => { ipcRenderer.send('manual-action', { action, state: true }); };
+        window.stopAction = (action) => { ipcRenderer.send('manual-action', { action, state: false }); };
+        window.triggerAction = (action) => { ipcRenderer.send('manual-action', { action, state: true }); };
+        window.sendDirective = () => {
+            const input = document.getElementById('directiveInput');
+            const val = input.value.trim();
+            if(val) { ipcRenderer.send('direct-instruction', val); input.value = ''; }
+        };
+
+        // WASD
+        document.addEventListener('keydown', (e) => {
+            if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+            const key = e.key.toLowerCase();
+            if(key === 'w') startAction('forward');
+            if(key === 'a') startAction('left');
+            if(key === 's') startAction('back');
+            if(key === 'd') startAction('right');
+            if(key === ' ') startAction('jump');
+        });
+        document.addEventListener('keyup', (e) => {
+            if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+            const key = e.key.toLowerCase();
+            if(key === 'w') stopAction('forward');
+            if(key === 'a') stopAction('left');
+            if(key === 's') stopAction('back');
+            if(key === 'd') stopAction('right');
+            if(key === ' ') stopAction('jump');
+        });
+
+        // --- Memory Logic ---
+        let memoryData = { server_info: "", players: {} };
+        let selectedPlayer = null;
+        function refreshMemoryUI() { ipcRenderer.send('get-memory-db'); }
+        ipcRenderer.on('memory-db-data', (e, data) => { memoryData = data; renderMemoryUI(); });
+        function renderMemoryUI() {
+            document.getElementById('memServerInfo').value = memoryData.server_info || "";
+            const list = document.getElementById('memPlayerList');
+            list.innerHTML = '';
+            const addBtn = document.createElement('div'); addBtn.className = 'player-item'; addBtn.style.textAlign = 'center'; addBtn.style.color = '#55efc4';
+            addBtn.textContent = '+ ADD NEW RECORD'; addBtn.onclick = () => createNewPlayerRecord();
+            list.appendChild(addBtn);
+            Object.keys(memoryData.players).forEach(name => {
+                const p = memoryData.players[name];
+                const item = document.createElement('div');
+                item.className = `player-item ${selectedPlayer === name ? 'active' : ''}`;
+                item.onclick = () => selectPlayer(name);
+                item.innerHTML = `<div class="player-name">${name}</div><div class="player-meta">${p.relation.toUpperCase()}</div>`;
+                list.appendChild(item);
+            });
+        }
+        function selectPlayer(name) {
+            selectedPlayer = name; renderMemoryUI();
+            document.getElementById('noPlayerSelected').style.display = 'none';
+            document.getElementById('playerEditor').style.display = 'flex';
+            const p = memoryData.players[name];
+            document.getElementById('memPlayerName').value = name;
+            document.getElementById('memRelation').value = p.relation;
+            document.getElementById('memNotes').value = p.notes;
+        }
+        function createNewPlayerRecord() {
+            const name = prompt("Enter player nickname:");
+            if (name && !memoryData.players[name]) {
+                memoryData.players[name] = { relation: "neutral", notes: "", first_seen: new Date().toISOString() };
+                selectPlayer(name);
+            }
+        }
+        document.getElementById('memServerInfo').addEventListener('input', (e) => { memoryData.server_info = e.target.value; });
+        document.getElementById('memRelation').addEventListener('change', (e) => { if(selectedPlayer) memoryData.players[selectedPlayer].relation = e.target.value; });
+        document.getElementById('memNotes').addEventListener('input', (e) => { if(selectedPlayer) memoryData.players[selectedPlayer].notes = e.target.value; });
+        window.saveMemoryDB = () => { ipcRenderer.send('save-memory-db', memoryData); };
+        window.deletePlayerMemory = () => { if(confirm(`Forget all memories about ${selectedPlayer}?`)) { delete memoryData.players[selectedPlayer]; selectedPlayer = null; document.getElementById('playerEditor').style.display = 'none'; document.getElementById('noPlayerSelected').style.display = 'block'; renderMemoryUI(); }};
+
+        // --- Terminal & Base Logic ---
+        const ui = {
+            logContainer: document.getElementById('log-container'),
+            inputs: {
+                proxyTarget: document.getElementById('proxyTarget'),
+                proxyVersion: document.getElementById('proxyVersion'),
+                botName: document.getElementById('botName'),
+                botVersion: document.getElementById('botVersion'),
+                llmPrompt: document.getElementById('llmPrompt'),
+                llmModel: document.getElementById('llmModel'),
+                apiKey: document.getElementById('apiKey'),
+                ttsEnabled: document.getElementById('ttsEnabled'),
+                ttsModelPath: document.getElementById('ttsModelPath'),
+                ttsConfigPath: document.getElementById('ttsConfigPath'),
+                ttsDevice: document.getElementById('ttsDevice'),
+                ttsMaxChars: document.getElementById('ttsMaxChars'),
+                ttsQueueLimit: document.getElementById('ttsQueueLimit'),
+                ttsTestText: document.getElementById('ttsTestText'),
+                console: document.getElementById('consoleInput')
+            },
+            btns: { bot: document.getElementById('toggleBot'), proxy: document.getElementById('toggleProxy') },
+            status: { bot: document.getElementById('status-bot'), proxy: document.getElementById('status-proxy') }
+        };
+        document.querySelector('.boosty-link').addEventListener('click', (e) => { e.preventDefault(); shell.openExternal('https://boosty.to/slatgoth'); });
+        function loadSettings() {
+            const saved = localStorage.getItem('gemini_bot_settings');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    for (const [key, val] of Object.entries(data)) {
+                        if (!ui.inputs[key] || key === 'console') continue;
+                        if (ui.inputs[key].type === 'checkbox') ui.inputs[key].checked = !!val;
+                        else ui.inputs[key].value = val;
+                    }
+                    window.savedModel = data.llmModel;
+                } catch(e) {}
+            } else {
+                ui.inputs.proxyTarget.value = "example.org:25565";
+                ui.inputs.proxyVersion.value = "1.21.4";
+                ui.inputs.botName.value = "Bot_Name";
+                ui.inputs.botVersion.value = "1.21.4";
+            }
+        }
+        function saveSettings() {
+            const data = {};
+            for (const [key, el] of Object.entries(ui.inputs)) {
+                if (key === 'console' || key === 'ttsTestText') continue;
+                data[key] = (el.type === 'checkbox') ? el.checked : el.value;
+            }
+            localStorage.setItem('gemini_bot_settings', JSON.stringify(data));
+        }
+        Object.values(ui.inputs).forEach(el => el.addEventListener('change', saveSettings));
+        loadSettings();
+
+        function stripAnsi(str) { return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, ''); }
+        let currentFilter = 'all';
+        function addLog(text, type) {
+            let cleanText = stripAnsi(text).replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '');
+            const div = document.createElement('div');
+            div.className = `log-line type-${type}`;
+            if (currentFilter !== 'all' && !div.classList.contains(currentFilter)) div.classList.add('hidden');
+            const timeSpan = document.createElement('span'); timeSpan.className = 'log-time'; timeSpan.textContent = new Date().toLocaleTimeString('ru-RU', { hour12: false });
+            const contentSpan = document.createElement('span'); contentSpan.className = 'log-content';
+            if (type === 'chat' && cleanText.includes(':')) {
+                const parts = cleanText.split(':');
+                const user = parts[0]; const msg = parts.slice(1).join(':');
+                contentSpan.innerHTML = `<span class="user">${user}:</span><span class="msg">${msg}</span>`;
+            } else { contentSpan.textContent = cleanText; }
+            div.appendChild(timeSpan); div.appendChild(contentSpan);
+            ui.logContainer.appendChild(div); ui.logContainer.scrollTop = ui.logContainer.scrollHeight;
+        }
+        ipcRenderer.on('log', (event, { text, type }) => {
+            if (text.includes('[ViaProxy]')) type = 'proxy';
+            if (text.includes('AI Thinking')) type = 'ai';
+            if (type === 'chat' || text.startsWith('[Chat]')) { type = 'chat'; text = text.replace('[Chat] ', ''); }
+            addLog(text, type);
+        });
+        window.setFilter = (filter) => {
+            currentFilter = filter;
+            document.querySelectorAll('.terminal-toolbar .term-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.log-line').forEach(line => {
+                if (filter === 'all' || line.classList.contains(filter)) line.classList.remove('hidden'); else line.classList.add('hidden');
+            });
+            ui.logContainer.scrollTop = ui.logContainer.scrollHeight;
+        };
+        window.clearLogs = () => { ui.logContainer.innerHTML = ''; };
+        window.copyLogs = () => { navigator.clipboard.writeText(ui.logContainer.innerText); };
+        ui.inputs.console.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendCommand(); });
+        function sendCommand() {
+            const val = ui.inputs.console.value.trim();
+            if(val) { addLog(`> ${val}`, 'info'); ipcRenderer.send('bot-command', val); ui.inputs.console.value = ''; }
+        }
+
+        let botState = false;
+        ui.btns.bot.addEventListener('click', () => {
+            if (!botState) {
+                ipcRenderer.send('start-bot', {
+                    username: ui.inputs.botName.value, host: 'localhost', port: 25568, version: ui.inputs.botVersion.value,
+                    prompt: ui.inputs.llmPrompt.value, model: ui.inputs.llmModel.value, apiKey: ui.inputs.apiKey.value
+                });
+                ui.btns.bot.textContent = "TERMINATE BOT"; ui.btns.bot.className = "btn-stop";
+                ui.status.bot.textContent = "ONLINE"; ui.status.bot.classList.add('on');
+                botState = true;
+            } else {
+                ipcRenderer.send('stop-bot');
+                ui.btns.bot.textContent = "LAUNCH BOT"; ui.btns.bot.className = "btn-primary";
+                ui.status.bot.textContent = "OFFLINE"; ui.status.bot.classList.remove('on');
+                botState = false;
+            }
+        });
+        let proxyState = false;
+        ui.btns.proxy.addEventListener('click', () => {
+            if (!proxyState) {
+                ipcRenderer.send('start-proxy', { target: ui.inputs.proxyTarget.value, version: ui.inputs.proxyVersion.value });
+                ui.btns.proxy.textContent = "STOP PROXY"; ui.btns.proxy.className = "btn-stop";
+                ui.status.proxy.textContent = "ONLINE"; ui.status.proxy.classList.add('on');
+                proxyState = true;
+            } else {
+                ipcRenderer.send('stop-proxy');
+                ui.btns.proxy.textContent = "INITIALIZE PROXY"; ui.btns.proxy.className = "btn-secondary";
+                ui.status.proxy.textContent = "OFFLINE"; ui.status.proxy.classList.remove('on');
+                proxyState = false;
+            }
+        });
+        ipcRenderer.on('models-list', (e, models) => {
+            ui.inputs.llmModel.innerHTML = '';
+            // Add custom Cloud options if desired, else just listing local
+            models.forEach(m => {
+                const opt = document.createElement('option'); opt.value = m.name; opt.text = m.name;
+                if (window.savedModel && m.name === window.savedModel) opt.selected = true;
+                else if (!window.savedModel && m.name.includes('deepseek')) opt.selected = true;
+                ui.inputs.llmModel.appendChild(opt);
+            });
+        });
+        ipcRenderer.send('get-models');
+
+        // --- TTS Controls ---
+        const ttsStatusEl = document.getElementById('ttsStatus');
+        const ttsLogEl = document.getElementById('ttsLog');
+        const ttsModelPicker = document.getElementById('ttsModelPicker');
+        const ttsConfigPicker = document.getElementById('ttsConfigPicker');
+        document.getElementById('ttsBrowseModel').addEventListener('click', () => ttsModelPicker.click());
+        document.getElementById('ttsBrowseConfig').addEventListener('click', () => ttsConfigPicker.click());
+        ttsModelPicker.addEventListener('change', () => {
+            if (ttsModelPicker.files && ttsModelPicker.files[0]) {
+                ui.inputs.ttsModelPath.value = ttsModelPicker.files[0].path || '';
+                saveSettings();
+                sendTtsConfig();
+            }
+        });
+        ttsConfigPicker.addEventListener('change', () => {
+            if (ttsConfigPicker.files && ttsConfigPicker.files[0]) {
+                ui.inputs.ttsConfigPath.value = ttsConfigPicker.files[0].path || '';
+                saveSettings();
+                sendTtsConfig();
+            }
+        });
+
+        function sendTtsConfig() {
+            ipcRenderer.send('tts-config', {
+                enabled: ui.inputs.ttsEnabled.checked,
+                modelPath: ui.inputs.ttsModelPath.value,
+                configPath: ui.inputs.ttsConfigPath.value,
+                device: ui.inputs.ttsDevice.value,
+                maxChars: ui.inputs.ttsMaxChars.value,
+                queueLimit: ui.inputs.ttsQueueLimit.value
+            });
+        }
+
+        document.getElementById('ttsApply').addEventListener('click', () => {
+            saveSettings();
+            sendTtsConfig();
+        });
+        ['ttsEnabled', 'ttsModelPath', 'ttsConfigPath', 'ttsDevice', 'ttsMaxChars', 'ttsQueueLimit'].forEach((key) => {
+            if (ui.inputs[key]) ui.inputs[key].addEventListener('change', sendTtsConfig);
+        });
+        document.getElementById('ttsListModels').addEventListener('click', () => {
+            sendTtsConfig();
+            ipcRenderer.send('tts-list-models');
+        });
+        document.getElementById('ttsTestBtn').addEventListener('click', () => {
+            const text = ui.inputs.ttsTestText.value.trim();
+            if (text) ipcRenderer.send('tts-test', text);
+        });
+        sendTtsConfig();
+
+        ipcRenderer.on('tts-status', (e, status) => {
+            ttsStatusEl.textContent = status.reason || 'Unknown';
+            ttsStatusEl.classList.remove('ok', 'err');
+            ttsStatusEl.classList.add(status.ok ? 'ok' : 'err');
+        });
+
+        function addTtsLog(text, level) {
+            const line = document.createElement('div');
+            line.className = `tts-log-line tts-log-${level || 'info'}`;
+            const time = document.createElement('span');
+            time.className = 'tts-log-time';
+            time.textContent = new Date().toLocaleTimeString('ru-RU', { hour12: false });
+            const msg = document.createElement('span');
+            msg.textContent = text;
+            line.appendChild(time);
+            line.appendChild(msg);
+            ttsLogEl.appendChild(line);
+            ttsLogEl.scrollTop = ttsLogEl.scrollHeight;
+        }
+
+        ipcRenderer.on('tts-log', (e, payload) => {
+            addTtsLog(payload.text, payload.level);
+        });
+
+        document.getElementById('ttsClearLog').addEventListener('click', () => {
+            ttsLogEl.innerHTML = '';
+        });
+    </script>
+</body>
+</html>

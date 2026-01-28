@@ -1,13 +1,14 @@
 node_modules/
-logs/
-data/memory.json
-config.user.json
-prompts/system_prompt.txt
-.env
-*.log
 dist/
 build/
-tools/viaproxy/logs/
-Minecraft LLM Bot*.lnk
-Minecraft LLM Bot*.exe
-tools/viaproxy/ViaLoader/viabedrock/blob_cache/
+.env
+*.log
+Thumbs.db
+.DS_Store
+
+# Runtime / local data
+memory.json
+tts/.venv/
+tts/outputs/
+tts/models/
+*.wav

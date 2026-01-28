@@ -1,55 +1,41 @@
 {
-  "name": "minecraft-llm-bot",
-  "version": "1.2.8",
-  "description": "Minecraft bot based on Mineflayer and Ollama (DeepSeek)",
-  "author": "slatgoth <slatgoth@gmail.com>",
-  "main": "electron/main.js",
+  "name": "minecraft-ai-bot",
+  "version": "1.3.0",
+  "description": "Minecraft AI Bot with Electron control panel, Mineflayer, Ollama, and Piper TTS",
+  "main": "main.js",
   "scripts": {
-    "start": "node src/index.js",
-    "app": "electron electron/main.js",
-    "dist": "electron-builder --win --x64",
-    "dist:exe": "electron-builder --win --x64 && node tools/prepare-release.js"
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
+  "keywords": [],
+  "author": "slatgoth",
+  "license": "MIT",
   "dependencies": {
+    "js-yaml": "^4.1.0",
     "mineflayer": "^4.20.1",
-    "mineflayer-pathfinder": "^2.4.5",
-    "mineflayer-pvp": "^1.3.2",
-    "mineflayer-armor-manager": "^1.4.0",
+    "mineflayer-armor-manager": "^2.0.1",
     "mineflayer-auto-eat": "^3.3.1",
     "mineflayer-collectblock": "^1.5.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "mineflayer-pvp": "^1.3.2",
     "mineflayer-tool": "^1.2.0",
+    "minecraft-data": "^3.67.0",
     "ollama": "^0.5.0",
-    "winston": "^3.11.0",
-    "chalk": "^4.1.2"
+    "prismarine-viewer": "^1.26.0",
+    "vec3": "^0.1.8"
   },
   "devDependencies": {
-    "electron": "^30.1.2",
-    "electron-builder": "^24.13.3"
+    "electron": "^28.1.0",
+    "electron-builder": "^26.4.0"
   },
   "build": {
-    "appId": "com.slatgoth.minecraft-llm-bot",
-    "productName": "Minecraft LLM Bot",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "electron/**",
-      "src/**",
-      "prompts/**",
-      "data/**",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "tools/viaproxy",
-        "to": "viaproxy"
-      }
-    ],
+    "appId": "com.minecraft.aibot",
     "win": {
-      "signAndEditExecutable": false,
-      "target": [
-        "portable"
-      ]
+      "target": "nsis"
+    },
+    "directories": {
+        "output": "dist"
     }
   }
 }
